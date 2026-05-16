@@ -1,74 +1,62 @@
 package com.ekhuaheng.goldshop.config;
 
 import com.ekhuaheng.goldshop.entity.Role;
-import com.ekhuaheng.goldshop.entity.Customer;
-import com.ekhuaheng.goldshop.entity.Product;
 import com.ekhuaheng.goldshop.entity.User;
-import com.ekhuaheng.goldshop.repository.CustomerRepository;
-import com.ekhuaheng.goldshop.repository.ProductRepository;
 import com.ekhuaheng.goldshop.repository.UserRepository;
+import com.ekhuaheng.goldshop.service.GoogleSheetsService;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.util.StringUtils;
+
+import java.util.List;
+import java.util.Map;
 
 @Configuration
+@Slf4j
 public class DatabaseSeeder {
 
     @Bean
-    CommandLineRunner initDatabase(UserRepository userRepository, ProductRepository productRepository, CustomerRepository customerRepository, PasswordEncoder passwordEncoder) {
+    CommandLineRunner initDatabase(UserRepository userRepository, 
+                                 PasswordEncoder passwordEncoder,
+                                 GoogleSheetsService sheetsService,
+                                 GoldShopProperties properties) {
         return args -> {
-            if (userRepository.count() == 0) {
+            GoldShopProperties.Seed.Admin adminConfig = properties.getSeed().getAdmin();
+            if (!adminConfig.isEnabled() || !StringUtils.hasText(adminConfig.getPassword())) {
+                log.info("Admin seeding skipped. Configure GOLDSHOP_ADMIN_PASSWORD to create the first owner account.");
+                return;
+            }
+
+            if (userRepository.findByUsername(adminConfig.getUsername()).isEmpty()) {
+                String encodedPassword = passwordEncoder.encode(adminConfig.getPassword());
+                
                 User admin = User.builder()
-                        .username("admin")
-                        .password(passwordEncoder.encode("123456"))
-                        .fullName("ผู้ดูแลระบบ (Owner)")
-                        .role(Role.OWNER)
+                        .username(adminConfig.getUsername())
+                        .password(encodedPassword)
+                        .fullName(adminConfig.getFullName())
+                        .role(adminConfig.getRole() == null ? Role.OWNER : adminConfig.getRole())
                         .build();
                 userRepository.save(admin);
-                System.out.println("✅ สร้างผู้ใช้งานตั้งต้นสำเร็จ (username: admin, password: 123456)");
-            }
-
-            if (productRepository.count() == 0) {
-                productRepository.save(Product.builder()
-                        .barcode("G1001")
-                        .name("สร้อยคอ ลายกระดูกงู")
-                        .category("สร้อยคอ")
-                        .weightGram(15.16)
-                        .weightText("1 บาท")
-                        .status("AVAILABLE")
-                        .build());
-                productRepository.save(Product.builder()
-                        .barcode("G1002")
-                        .name("แหวน ลายเกลี้ยง")
-                        .category("แหวน")
-                        .weightGram(3.79)
-                        .weightText("1 สลึง")
-                        .status("AVAILABLE")
-                        .build());
-                productRepository.save(Product.builder()
-                        .barcode("G1003")
-                        .name("ทองคำแท่ง")
-                        .category("ทองแท่ง")
-                        .weightGram(15.244)
-                        .weightText("1 บาท")
-                        .status("AVAILABLE")
-                        .build());
-                System.out.println("✅ สร้างสินค้าตัวอย่างสำเร็จ (G1001, G1002, G1003)");
-            }
-
-            if (customerRepository.count() == 0) {
-                customerRepository.save(Customer.builder()
-                        .fullName("คุณสมชาย ใจดี")
-                        .phoneNumber("081-234-5678")
-                        .address("123 ม.1 กรุงเทพฯ")
-                        .build());
-                customerRepository.save(Customer.builder()
-                        .fullName("คุณสมศรี มีสุข")
-                        .phoneNumber("089-999-9999")
-                        .address("456 ม.2 นนทบุรี")
-                        .build());
-                System.out.println("✅ สร้างข้อมูลลูกค้าตัวอย่างสำเร็จ");
+                
+                try {
+                    List<Map<String, Object>> existingUsers = sheetsService.getData(SheetNames.USERS);
+                    boolean adminExists = existingUsers.stream()
+                            .anyMatch(u -> adminConfig.getUsername().equals(String.valueOf(u.get("username"))));
+                    
+                    if (!adminExists) {
+                        sheetsService.insertData(SheetNames.USERS, Map.of(
+                            "username", adminConfig.getUsername(),
+                            "password", encodedPassword,
+                            "fullName", adminConfig.getFullName(),
+                            "role", admin.getRole().name()
+                        ));
+                    }
+                } catch (Exception e) {
+                    log.error("Unable to sync seeded admin to Google Sheets: {}", e.getMessage());
+                }
             }
         };
     }

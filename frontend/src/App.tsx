@@ -1,23 +1,23 @@
 
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { ThemeProvider, CssBaseline } from '@mui/material';
+import type { ReactNode } from 'react';
 import { theme } from './theme';
 import { MainLayout } from './layouts/MainLayout';
 
 import { Dashboard } from './pages/Dashboard';
 import { Pos } from './pages/Pos';
 import { Pawn } from './pages/Pawn';
-
-const Inventory = () => <div>Inventory Page</div>;
-const Customers = () => <div>Customers Page</div>;
-const Reports = () => <div>Reports Page</div>;
-const Settings = () => <div>Settings Page</div>;
+import { Inventory } from './pages/Inventory';
+import { Customers } from './pages/Customers';
+import { Reports } from './pages/Reports';
+import { Settings } from './pages/Settings';
 
 import { Navigate } from 'react-router-dom';
 import { useAuthStore } from './store/useAuthStore';
 import Login from './pages/Login';
 
-const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
+const ProtectedRoute = ({ children }: { children: ReactNode }) => {
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
   if (!isAuthenticated) {
     return <Navigate to="/login" replace />;

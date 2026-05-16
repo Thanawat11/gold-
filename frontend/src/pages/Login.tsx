@@ -8,6 +8,7 @@ import { useNavigate } from 'react-router-dom';
 import { authApi } from '../api/authApi';
 import { useAuthStore } from '../store/useAuthStore';
 import { motion } from 'framer-motion';
+import { getErrorMessage } from '../api/client';
 
 export default function Login() {
   const [username, setUsername] = useState('');
@@ -33,8 +34,8 @@ export default function Login() {
         role: response.role
       });
       navigate('/');
-    } catch (err: any) {
-      setError(err.message || 'เกิดข้อผิดพลาดในการเข้าสู่ระบบ');
+    } catch (err) {
+      setError(getErrorMessage(err, 'เกิดข้อผิดพลาดในการเข้าสู่ระบบ'));
     } finally {
       setLoading(false);
     }
@@ -59,7 +60,7 @@ export default function Login() {
         <Card sx={{ 
           maxWidth: 400, 
           width: '100%', 
-          borderRadius: 3,
+          borderRadius: 1,
           boxShadow: '0 8px 32px rgba(0,0,0,0.3)',
           background: 'rgba(255, 255, 255, 0.95)',
           backdropFilter: 'blur(10px)'
@@ -71,7 +72,7 @@ export default function Login() {
                   width: 60, 
                   height: 60, 
                   bgcolor: 'primary.main', 
-                  borderRadius: '50%', 
+                  borderRadius: 1,
                   display: 'flex', 
                   alignItems: 'center', 
                   justifyContent: 'center',

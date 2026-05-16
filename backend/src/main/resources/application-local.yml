@@ -1,0 +1,23 @@
+spring:
+  config:
+    activate:
+      on-profile: local
+
+server:
+  port: ${SERVER_PORT:18080}
+
+jwt:
+  secret: ${JWT_SECRET:local-dev-jwt-secret-local-dev-jwt-secret}
+
+goldshop:
+  cors:
+    allowed-origins:
+      - http://localhost:5173
+      - http://localhost:5174
+      - http://localhost:5175
+  seed:
+    admin:
+      password: ${GOLDSHOP_ADMIN_PASSWORD:Admin@12345}
+  google-sheets:
+    enabled: true
+    web-app-url: https://script.google.com/macros/s/AKfycbzwH7PgRS96xFHVmmgZl5oeXY-GhLaxxYD7bONTu0dui1YFoFLR4juHTndUdWjfxAH0/exec

@@ -33,8 +33,9 @@ public class Product {
 
     private Double costFee; // ค่ากำเหน็จต้นทุน
 
+    @Enumerated(EnumType.STRING)
     @Column(nullable = false)
-    private String status; // AVAILABLE, SOLD, PAWNED, MELTED
+    private ProductStatus status;
 
     @Column(updatable = false)
     private LocalDateTime createdAt;
@@ -42,9 +43,5 @@ public class Product {
     @PrePersist
     protected void onCreate() {
         createdAt = LocalDateTime.now();
-        // Generate barcode if empty
-        if (this.barcode == null || this.barcode.isEmpty()) {
-            this.barcode = "G-" + System.currentTimeMillis();
-        }
     }
 }

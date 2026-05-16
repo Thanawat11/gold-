@@ -2,6 +2,7 @@ package com.ekhuaheng.goldshop.service;
 
 import com.ekhuaheng.goldshop.dto.CheckoutItemRequest;
 import com.ekhuaheng.goldshop.dto.CheckoutRequest;
+import com.ekhuaheng.goldshop.config.SheetNames;
 import com.ekhuaheng.goldshop.entity.*;
 import com.ekhuaheng.goldshop.repository.*;
 import lombok.RequiredArgsConstructor;
@@ -21,6 +22,9 @@ public class PosService {
     private final ProductRepository productRepository;
     private final CustomerRepository customerRepository;
     private final UserRepository userRepository;
+    private final DocumentNumberService documentNumberService;
+    private final GoogleSheetsService sheetsService;
+    private final AuditLogService auditLogService;
 
     @Transactional
     public Transaction checkout(CheckoutRequest request) {
@@ -34,6 +38,7 @@ public class PosService {
         }
 
         Transaction transaction = Transaction.builder()
+                .receiptNumber(documentNumberService.receiptNumber())
                 .customer(customer)
                 .createdBy(user)
                 .transactionType(request.getTransactionType())
@@ -47,10 +52,17 @@ public class PosService {
         Transaction savedTransaction = transactionRepository.save(transaction);
 
         for (CheckoutItemRequest itemReq : request.getItems()) {
-            Product product = productRepository.findById(itemReq.getProductId())
-                    .orElseThrow(() -> new RuntimeException("ไม่พบสินค้า ID: " + itemReq.getProductId()));
+            Product product = null;
+            if (itemReq.getProductId() != null) {
+                product = productRepository.findById(itemReq.getProductId())
+                        .orElseThrow(() -> new RuntimeException("ไม่พบสินค้า ID: " + itemReq.getProductId()));
+            }
 
-            if (!"AVAILABLE".equals(product.getStatus()) && "SELL".equals(itemReq.getItemType())) {
+            if (itemReq.getItemType() == TransactionItemType.SELL && product == null) {
+                throw new RuntimeException("รายการขายต้องระบุสินค้า");
+            }
+
+            if (product != null && product.getStatus() != ProductStatus.AVAILABLE && itemReq.getItemType() == TransactionItemType.SELL) {
                 throw new RuntimeException("สินค้า " + product.getName() + " ไม่พร้อมขาย (สถานะ: " + product.getStatus() + ")");
             }
 
@@ -65,15 +77,28 @@ public class PosService {
             transactionItemRepository.save(item);
             
             // Update product status
-            if ("SELL".equals(itemReq.getItemType())) {
-                product.setStatus("SOLD");
-            } else if ("BUY".equals(itemReq.getItemType())) {
-                product.setStatus("AVAILABLE"); // Bought back, now available for sale
+            if (product != null && itemReq.getItemType() == TransactionItemType.SELL) {
+                product.setStatus(ProductStatus.SOLD);
+            } else if (itemReq.getItemType() == TransactionItemType.BUY) {
+                if (product != null) {
+                    product.setStatus(ProductStatus.AVAILABLE);
+                }
             }
-            productRepository.save(product);
+            if (product != null) {
+                productRepository.save(product);
+            }
             
             savedTransaction.getItems().add(item);
         }
+
+        sheetsService.insertData(SheetNames.TRANSACTIONS, java.util.Map.of(
+                "id", savedTransaction.getId(),
+                "receiptNumber", savedTransaction.getReceiptNumber(),
+                "transactionType", savedTransaction.getTransactionType().name(),
+                "netAmount", savedTransaction.getNetAmount(),
+                "paymentMethod", savedTransaction.getPaymentMethod().name()
+        ));
+        auditLogService.record("CHECKOUT", "Transaction", savedTransaction.getId(), savedTransaction.getReceiptNumber());
 
         return savedTransaction;
     }

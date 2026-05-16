@@ -15,7 +15,7 @@ export const theme = createTheme({
       contrastText: '#000000',
     },
     background: {
-      default: '#f8f9fa',
+      default: '#f6f5f1',
       paper: '#ffffff',
     },
   },
@@ -45,14 +45,14 @@ export const theme = createTheme({
     },
   },
   shape: {
-    borderRadius: 12,
+    borderRadius: 8,
   },
   components: {
     MuiButton: {
       styleOverrides: {
         root: {
           borderRadius: 8,
-          padding: '8px 24px',
+          padding: '8px 18px',
           boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)',
           '&:hover': {
             boxShadow: '0 6px 12px rgba(0, 0, 0, 0.15)',
@@ -64,7 +64,7 @@ export const theme = createTheme({
       styleOverrides: {
         root: {
           boxShadow: '0 4px 20px rgba(0, 0, 0, 0.05)',
-          borderRadius: 16,
+          borderRadius: 8,
         },
       },
     },

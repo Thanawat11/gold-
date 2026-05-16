@@ -24,8 +24,9 @@ public class PawnHistory {
     @JsonIgnore
     private PawnTicket pawnTicket;
 
+    @Enumerated(EnumType.STRING)
     @Column(nullable = false)
-    private String actionType; // RENEW, ADD_PRINCIPAL, REDUCE_PRINCIPAL, REDEEM, CREATE
+    private PawnActionType actionType;
 
     @Column(nullable = false)
     private Double amountPaid; // Total amount paid by customer (or given to customer if negative/adding principal)

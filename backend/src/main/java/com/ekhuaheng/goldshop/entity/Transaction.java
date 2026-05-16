@@ -29,15 +29,17 @@ public class Transaction {
     @JoinColumn(name = "user_id", nullable = false)
     private User createdBy; // พนักงานที่ทำรายการ
 
+    @Enumerated(EnumType.STRING)
     @Column(nullable = false)
-    private String transactionType; // SELL, BUY, TRADE_IN
+    private TransactionType transactionType;
 
     private Double totalAmount;
     private Double discount;
     private Double netAmount;
 
+    @Enumerated(EnumType.STRING)
     @Column(nullable = false)
-    private String paymentMethod; // CASH, TRANSFER, CREDIT_CARD
+    private PaymentMethod paymentMethod;
 
     @OneToMany(mappedBy = "transaction", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private List<TransactionItem> items;
@@ -48,8 +50,5 @@ public class Transaction {
     @PrePersist
     protected void onCreate() {
         transactionDate = LocalDateTime.now();
-        if (this.receiptNumber == null) {
-            this.receiptNumber = "INV" + System.currentTimeMillis();
-        }
     }
 }

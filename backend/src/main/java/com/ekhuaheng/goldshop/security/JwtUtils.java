@@ -2,15 +2,18 @@ package com.ekhuaheng.goldshop.security;
 
 import io.jsonwebtoken.*;
 import io.jsonwebtoken.security.Keys;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Component;
+import org.springframework.util.StringUtils;
 
 import java.security.Key;
 import java.util.Date;
 
 @Component
+@Slf4j
 public class JwtUtils {
 
     @Value("${jwt.secret}")
@@ -19,8 +22,17 @@ public class JwtUtils {
     @Value("${jwt.expiration}")
     private int jwtExpirationMs;
 
+    private Key fallbackSigningKey;
+
     private Key getSigningKey() {
-        return Keys.hmacShaKeyFor(jwtSecret.getBytes());
+        if (StringUtils.hasText(jwtSecret)) {
+            return Keys.hmacShaKeyFor(jwtSecret.getBytes());
+        }
+        if (fallbackSigningKey == null) {
+            fallbackSigningKey = Keys.secretKeyFor(SignatureAlgorithm.HS256);
+            log.warn("JWT_SECRET is not configured. Using an in-memory signing key for this process only.");
+        }
+        return fallbackSigningKey;
     }
 
     public String generateJwtToken(Authentication authentication) {
@@ -43,8 +55,8 @@ public class JwtUtils {
         try {
             Jwts.parserBuilder().setSigningKey(getSigningKey()).build().parseClaimsJws(authToken);
             return true;
-        } catch (JwtException e) {
-            // Log error
+        } catch (JwtException | IllegalArgumentException e) {
+            log.warn("Invalid JWT token: {}", e.getMessage());
         }
         return false;
     }

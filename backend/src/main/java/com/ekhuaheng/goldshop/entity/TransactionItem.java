@@ -23,8 +23,9 @@ public class TransactionItem {
     @JoinColumn(name = "product_id")
     private Product product;
 
+    @Enumerated(EnumType.STRING)
     @Column(nullable = false)
-    private String itemType; // SELL, BUY
+    private TransactionItemType itemType;
 
     @Column(nullable = false)
     private Double price; // ราคาต่อชิ้น ณ ตอนนั้น

@@ -1,42 +1,35 @@
-const API_URL = 'http://localhost:8080/api/v1';
+import { request } from './client';
+import type {
+  CheckoutRequest,
+  PriceQuoteRequest,
+  PriceQuoteResponse,
+  Product,
+  ProductRequest,
+  Transaction,
+} from '../types';
 
 export const posApi = {
-  searchByBarcode: async (barcode: string, token: string) => {
-    const response = await fetch(`${API_URL}/products/barcode/${barcode}`, {
-      headers: {
-        'Authorization': `Bearer ${token}`
-      }
-    });
-    if (!response.ok) {
-      if (response.status === 404) throw new Error('ไม่พบสินค้า');
-      throw new Error('เกิดข้อผิดพลาดในการค้นหาสินค้า');
-    }
-    return response.json();
-  },
-
-  checkout: async (data: any, token: string) => {
-    const response = await fetch(`${API_URL}/pos/checkout`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`
-      },
-      body: JSON.stringify(data)
-    });
-    if (!response.ok) {
-      const errorMsg = await response.text();
-      throw new Error(errorMsg || 'เกิดข้อผิดพลาดในการบันทึกรายการ');
-    }
-    return response.json();
-  },
-
-  getAvailableProducts: async (token: string) => {
-    const response = await fetch(`${API_URL}/products/available`, {
-      headers: {
-        'Authorization': `Bearer ${token}`
-      }
-    });
-    if (!response.ok) throw new Error('ไม่สามารถดึงข้อมูลสินค้าได้');
-    return response.json();
-  }
+  searchByBarcode: (barcode: string) => request<Product>(`/api/v1/products/barcode/${encodeURIComponent(barcode)}`),
+  checkout: (data: CheckoutRequest) => request<Transaction>('/api/v1/pos/checkout', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  }),
+  getProducts: () => request<Product[]>('/api/v1/products'),
+  getAvailableProducts: () => request<Product[]>('/api/v1/products/available'),
+  createProduct: (data: ProductRequest) => request<Product>('/api/v1/products', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  }),
+  quoteSell: (data: PriceQuoteRequest) => request<PriceQuoteResponse>('/api/v1/pricing/sell', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  }),
+  quoteBuy: (data: PriceQuoteRequest) => request<PriceQuoteResponse>('/api/v1/pricing/buy', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  }),
+  quoteTradeIn: (data: PriceQuoteRequest) => request<PriceQuoteResponse>('/api/v1/pricing/trade-in', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  }),
 };

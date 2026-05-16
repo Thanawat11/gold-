@@ -1,27 +1,63 @@
 server:
-  port: 8080
+  port: ${SERVER_PORT:8080}
 
 spring:
   application:
     name: goldshop
   datasource:
-    url: jdbc:h2:mem:goldshopdb
-    driverClassName: org.h2.Driver
-    username: sa
-    password: password
+    url: ${SPRING_DATASOURCE_URL:jdbc:h2:mem:goldshopdb}
+    driver-class-name: ${SPRING_DATASOURCE_DRIVER:org.h2.Driver}
+    username: ${SPRING_DATASOURCE_USERNAME:sa}
+    password: ${SPRING_DATASOURCE_PASSWORD:}
   h2:
     console:
-      enabled: true
+      enabled: ${H2_CONSOLE_ENABLED:true}
       path: /h2-console
   jpa:
-    database-platform: org.hibernate.dialect.H2Dialect
+    open-in-view: ${SPRING_JPA_OPEN_IN_VIEW:false}
     hibernate:
-      ddl-auto: update
-    show-sql: true
+      ddl-auto: ${SPRING_JPA_DDL_AUTO:update}
+    show-sql: ${SPRING_JPA_SHOW_SQL:false}
     properties:
       hibernate:
-        format_sql: true
+        format_sql: ${SPRING_JPA_FORMAT_SQL:false}
 
 jwt:
-  secret: 404E635266556A586E3272357538782F413F4428472B4B6250645367566B5970
-  expiration: 86400000 # 1 day in milliseconds
+  secret: ${JWT_SECRET:}
+  expiration: ${JWT_EXPIRATION_MS:86400000}
+
+goldshop:
+  cors:
+    allowed-origins: ${GOLDSHOP_CORS_ALLOWED_ORIGINS:}
+  seed:
+    admin:
+      enabled: ${GOLDSHOP_SEED_ADMIN_ENABLED:true}
+      username: ${GOLDSHOP_ADMIN_USERNAME:admin}
+      password: ${GOLDSHOP_ADMIN_PASSWORD:}
+      full-name: ${GOLDSHOP_ADMIN_FULL_NAME:ผู้ดูแลระบบ}
+      role: ${GOLDSHOP_ADMIN_ROLE:OWNER}
+  google-sheets:
+    enabled: ${GOOGLE_SHEETS_ENABLED:false}
+    web-app-url: ${GOOGLE_SHEETS_WEB_APP_URL:}
+    timeout: ${GOOGLE_SHEETS_TIMEOUT:10s}
+  gold-price:
+    source-url: ${GOLD_PRICE_SOURCE_URL:https://classic.goldtraders.or.th/}
+    refresh-interval: ${GOLD_PRICE_REFRESH_INTERVAL:5m}
+    source-timeout: ${GOLD_PRICE_SOURCE_TIMEOUT:10s}
+  business:
+    grams-per-baht: ${GOLD_GRAMS_PER_BAHT:15.16}
+    ornament-wear-deduction-percent: ${ORNAMENT_WEAR_DEDUCTION_PERCENT:5.00}
+    owner-max-making-fee-discount: ${OWNER_MAX_MAKING_FEE_DISCOUNT:999999}
+    manager-max-making-fee-discount: ${MANAGER_MAX_MAKING_FEE_DISCOUNT:1000}
+    cashier-max-making-fee-discount: ${CASHIER_MAX_MAKING_FEE_DISCOUNT:300}
+    pawn:
+      default-term-months: ${PAWN_DEFAULT_TERM_MONTHS:4}
+      small-ticket-interest-rate: ${PAWN_SMALL_TICKET_INTEREST_RATE:2.00}
+      standard-ticket-interest-rate: ${PAWN_STANDARD_TICKET_INTEREST_RATE:1.25}
+      small-ticket-limit: ${PAWN_SMALL_TICKET_LIMIT:9999}
+      middle-ticket-min: ${PAWN_MIDDLE_TICKET_MIN:7000}
+      monthly-reduction-for-middle-tickets: ${PAWN_MIDDLE_TICKET_MONTHLY_REDUCTION:20.00}
+  document-numbers:
+    receipt-prefix: ${RECEIPT_PREFIX:INV}
+    pawn-ticket-prefix: ${PAWN_TICKET_PREFIX:PWN}
+    product-barcode-prefix: ${PRODUCT_BARCODE_PREFIX:G}

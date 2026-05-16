@@ -1,86 +1,31 @@
-const API_URL = 'http://localhost:8080/api/v1/pawn';
+import { request } from './client';
+import type {
+  PawnActionRequest,
+  PawnHistory,
+  PawnInterestSuggestion,
+  PawnTicket,
+  PawnTicketRequest,
+} from '../types';
+
+export interface PawnableItem {
+  id: string;
+  name: string;
+  category: string;
+}
 
 export const pawnApi = {
-  createTicket: async (data: any, token: string) => {
-    const response = await fetch(`${API_URL}/create`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`
-      },
-      body: JSON.stringify(data)
-    });
-    if (!response.ok) {
-      const errorMsg = await response.text();
-      throw new Error(errorMsg || 'เกิดข้อผิดพลาดในการออกตั๋ว');
-    }
-    return response.json();
-  },
-
-  getTickets: async (token: string) => {
-    const response = await fetch(`${API_URL}/tickets`, {
-      headers: {
-        'Authorization': `Bearer ${token}`
-      }
-    });
-    if (!response.ok) throw new Error('ไม่สามารถดึงข้อมูลตั๋วจำนำได้');
-    return response.json();
-  },
-
-  redeem: async (id: number, token: string) => {
-    const response = await fetch(`${API_URL}/redeem/${id}`, {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${token}`
-      }
-    });
-    if (!response.ok) throw new Error('ไม่สามารถไถ่ถอนได้');
-    return response.json();
-  },
-
-  getSummary: async (token: string) => {
-    const response = await fetch(`${API_URL}/summary`, {
-      headers: {
-        'Authorization': `Bearer ${token}`
-      }
-    });
-    if (!response.ok) throw new Error('ไม่สามารถดึงข้อมูลสรุปได้');
-    return response.json();
-  },
-
-  performAction: async (id: number, data: any, token: string) => {
-    const response = await fetch(`${API_URL}/${id}/action`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`
-      },
-      body: JSON.stringify(data)
-    });
-    if (!response.ok) {
-      const errorMsg = await response.text();
-      throw new Error(errorMsg || 'เกิดข้อผิดพลาดในการทำรายการ');
-    }
-    return response.json();
-  },
-
-  getHistory: async (id: number, token: string) => {
-    const response = await fetch(`${API_URL}/${id}/history`, {
-      headers: {
-        'Authorization': `Bearer ${token}`
-      }
-    });
-    if (!response.ok) throw new Error('ไม่สามารถดึงข้อมูลประวัติได้');
-    return response.json();
-  },
-
-  getInterestSuggestion: async (id: number, token: string) => {
-    const response = await fetch(`${API_URL}/${id}/interest-suggestion`, {
-      headers: {
-        'Authorization': `Bearer ${token}`
-      }
-    });
-    if (!response.ok) throw new Error('ไม่สามารถคำนวณดอกเบี้ยแนะนำได้');
-    return response.json();
-  }
+  createTicket: (data: PawnTicketRequest) => request<PawnTicket>('/api/v1/pawn/create', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  }),
+  getTickets: () => request<PawnTicket[]>('/api/v1/pawn/tickets'),
+  redeem: (id: number) => request<PawnTicket>(`/api/v1/pawn/redeem/${id}`, { method: 'POST' }),
+  getSummary: () => request<{ activeCount: number; nearDueCount: number; totalPrincipal: number }>('/api/v1/pawn/summary'),
+  performAction: (id: number, data: PawnActionRequest) => request<PawnTicket>(`/api/v1/pawn/${id}/action`, {
+    method: 'POST',
+    body: JSON.stringify(data),
+  }),
+  getHistory: (id: number) => request<PawnHistory[]>(`/api/v1/pawn/${id}/history`),
+  getInterestSuggestion: (id: number) => request<PawnInterestSuggestion>(`/api/v1/pawn/${id}/interest-suggestion`),
+  getPawnableItems: () => request<PawnableItem[]>('/api/v1/sheets/pawnable-items'),
 };

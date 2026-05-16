@@ -26,7 +26,7 @@ public class GoldPrice {
     @Column(nullable = false, updatable = false)
     private LocalDateTime effectiveDate;
 
-    @ManyEntity
+    @ManyToOne
     @JoinColumn(name = "updated_by")
     private User updatedBy;
 

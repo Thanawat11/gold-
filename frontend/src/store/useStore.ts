@@ -1,50 +1,42 @@
 import { create } from 'zustand';
-
-interface PriceDetail {
-  buy: string;
-  sell: string;
-}
+import type { CartItem, GoldPriceResponse } from '../types';
 
 interface StoreState {
-  goldPrice: {
-    bar: PriceDetail;
-    ornament: PriceDetail;
-    updatedAt: string;
-    // Legacy mapping (pointing to bar)
+  goldPrice: GoldPriceResponse & {
     buy: number;
     sell: number;
   };
-  setGoldPriceFromApi: (data: any) => void;
-  
-  cart: any[];
-  addToCart: (item: any) => void;
+  setGoldPriceFromApi: (data: GoldPriceResponse) => void;
+  cart: CartItem[];
+  addToCart: (item: CartItem) => void;
+  removeFromCart: (uid: string) => void;
   clearCart: () => void;
 }
 
-const parsePrice = (priceStr: string) => {
-  if (!priceStr || priceStr === 'N/A') return 0;
-  return parseFloat(priceStr.replace(/,/g, ''));
+const parsePrice = (price: string | null) => {
+  if (!price) {
+    return 0;
+  }
+  return Number(price.replace(/,/g, ''));
 };
 
 export const useStore = create<StoreState>((set) => ({
   goldPrice: {
     bar: { buy: '0', sell: '0' },
     ornament: { buy: '0', sell: '0' },
-    updatedAt: new Date().toISOString(),
+    updateTime: '',
     buy: 0,
     sell: 0,
   },
-  setGoldPriceFromApi: (data) => set({ 
-    goldPrice: { 
-      bar: data.bar,
-      ornament: data.ornament,
-      updatedAt: data.updateTime || new Date().toISOString(),
+  setGoldPriceFromApi: (data) => set({
+    goldPrice: {
+      ...data,
       buy: parsePrice(data.bar.buy),
       sell: parsePrice(data.bar.sell),
-    } 
+    },
   }),
-  
   cart: [],
   addToCart: (item) => set((state) => ({ cart: [...state.cart, item] })),
+  removeFromCart: (uid) => set((state) => ({ cart: state.cart.filter((item) => item.uid !== uid) })),
   clearCart: () => set({ cart: [] }),
 }));

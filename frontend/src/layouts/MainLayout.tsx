@@ -53,7 +53,7 @@ export const MainLayout = () => {
     <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
       <Box sx={{ p: 3, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
         <Typography variant="h5" sx={{ color: theme.palette.secondary.main, fontWeight: 'bold' }}>
-          เอกฮั่วเฮง
+          ห้างทองเอกฮั่วเฮง
         </Typography>
       </Box>
       <Divider sx={{ borderColor: 'rgba(255,255,255,0.1)' }} />
@@ -63,9 +63,12 @@ export const MainLayout = () => {
           return (
             <ListItem key={item.text} disablePadding sx={{ mb: 1 }}>
               <ListItemButton
-                onClick={() => navigate(item.path)}
+                onClick={() => {
+                  navigate(item.path);
+                  setMobileOpen(false);
+                }}
                 sx={{
-                  borderRadius: 2,
+                  borderRadius: 1,
                   backgroundColor: isActive ? theme.palette.primary.main : 'transparent',
                   '&:hover': {
                     backgroundColor: isActive ? theme.palette.primary.main : 'rgba(255,255,255,0.08)',
@@ -90,7 +93,7 @@ export const MainLayout = () => {
         })}
       </List>
       <Box sx={{ p: 2 }}>
-        <Box sx={{ display: 'flex', alignItems: 'center', p: 2, borderRadius: 2, backgroundColor: 'rgba(255,255,255,0.05)' }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', p: 2, borderRadius: 1, backgroundColor: 'rgba(255,255,255,0.05)' }}>
           <Avatar sx={{ bgcolor: theme.palette.secondary.main, mr: 2 }}>
             {user?.fullName?.charAt(0) || 'U'}
           </Avatar>
@@ -132,7 +135,7 @@ export const MainLayout = () => {
             <MenuIcon />
           </IconButton>
           <Typography variant="h6" noWrap component="div" sx={{ flexGrow: 1, fontWeight: 600 }}>
-            {menuItems.find(i => i.path === location.pathname)?.text || 'เอกฮั่วเฮง'}
+            {menuItems.find(i => i.path === location.pathname)?.text || 'ห้างทองเอกฮั่วเฮง'}
           </Typography>
         </Toolbar>
       </AppBar>

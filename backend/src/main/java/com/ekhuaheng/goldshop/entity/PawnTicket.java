@@ -41,8 +41,9 @@ public class PawnTicket {
     @Column(nullable = false)
     private LocalDate dueDate; // วันที่ครบกำหนด
 
+    @Enumerated(EnumType.STRING)
     @Column(nullable = false)
-    private String status; // ACTIVE, REDEEMED, EXPIRED
+    private PawnStatus status;
 
     @ManyToOne
     @JoinColumn(name = "user_id", nullable = false)
@@ -54,8 +55,5 @@ public class PawnTicket {
     @PrePersist
     protected void onCreate() {
         createdAt = LocalDateTime.now();
-        if (this.ticketNumber == null) {
-            this.ticketNumber = "PWN" + System.currentTimeMillis();
-        }
     }
 }
