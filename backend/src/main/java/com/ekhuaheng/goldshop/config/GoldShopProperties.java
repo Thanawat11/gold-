@@ -38,6 +38,7 @@ public class GoldShopProperties {
             private Role role = Role.OWNER;
         }
     }
+    
 
     @Data
     public static class GoogleSheets {
