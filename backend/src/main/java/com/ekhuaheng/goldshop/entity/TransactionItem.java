@@ -1,5 +1,6 @@
 package com.ekhuaheng.goldshop.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -17,6 +18,7 @@ public class TransactionItem {
 
     @ManyToOne
     @JoinColumn(name = "transaction_id", nullable = false)
+    @JsonIgnore
     private Transaction transaction;
 
     @ManyToOne

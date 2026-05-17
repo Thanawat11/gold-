@@ -1,6 +1,5 @@
 package com.ekhuaheng.goldshop.service;
 
-import com.ekhuaheng.goldshop.config.GoldShopProperties;
 import com.ekhuaheng.goldshop.dto.PriceQuoteRequest;
 import com.ekhuaheng.goldshop.dto.PriceQuoteResponse;
 import com.ekhuaheng.goldshop.entity.Role;
@@ -19,7 +18,7 @@ public class GoldCalculationService {
 
     private static final int MONEY_SCALE = 2;
 
-    private final GoldShopProperties properties;
+    private final BusinessSettingsService settingsService;
 
     public PriceQuoteResponse sell(PriceQuoteRequest request) {
         BigDecimal weightGram = valueOf(request.getWeightGram());
@@ -43,13 +42,17 @@ public class GoldCalculationService {
         BigDecimal weightGram = valueOf(request.getWeightGram());
         BigDecimal buyPricePerBaht = valueOf(request.getGoldPricePerBaht());
         BigDecimal deductionPercent = request.getWearDeductionPercent() == null
-                ? properties.getBusiness().getOrnamentWearDeductionPercent()
+                ? settingsService.wearDeductionPercent()
                 : valueOf(request.getWearDeductionPercent());
+        BigDecimal fixedDeduction = request.getFixedDeductionAmount() == null
+                ? settingsService.buyFixedDeductionAmount()
+                : valueOf(request.getFixedDeductionAmount());
         BigDecimal goldAmount = weightGram.multiply(pricePerGram(buyPricePerBaht));
-        BigDecimal deduction = goldAmount.multiply(deductionPercent)
+        BigDecimal percentDeduction = goldAmount.multiply(deductionPercent)
                 .divide(BigDecimal.valueOf(100), MONEY_SCALE, RoundingMode.HALF_UP);
+        BigDecimal deduction = percentDeduction.add(fixedDeduction).max(BigDecimal.ZERO);
         BigDecimal netAmount = request.getOverrideAmount() == null
-                ? goldAmount.subtract(deduction)
+                ? goldAmount.subtract(deduction).max(BigDecimal.ZERO)
                 : valueOf(request.getOverrideAmount());
 
         return PriceQuoteResponse.builder()
@@ -58,7 +61,7 @@ public class GoldCalculationService {
                 .discountAmount(0.0)
                 .deductionAmount(money(deduction))
                 .netAmount(money(netAmount))
-                .formula("BUYING_PRICE")
+                .formula("BUYING_PRICE_WITH_FIXED_DEDUCTION")
                 .build();
     }
 
@@ -98,22 +101,22 @@ public class GoldCalculationService {
     }
 
     public BigDecimal pawnInterestRate(BigDecimal principal) {
-        GoldShopProperties.Business.Pawn pawn = properties.getBusiness().getPawn();
-        if (principal.compareTo(pawn.getSmallTicketLimit()) <= 0) {
-            return pawn.getSmallTicketInterestRate();
+        if (principal.compareTo(settingsService.pawnSmallTicketLimit()) <= 0) {
+            return settingsService.pawnSmallTicketInterestRate();
         }
-        return pawn.getStandardTicketInterestRate();
+        return settingsService.pawnStandardTicketInterestRate();
     }
 
     public BigDecimal pricePerGram(BigDecimal pricePerBaht) {
-        return pricePerBaht.divide(properties.getBusiness().getGramsPerBaht(), 8, RoundingMode.HALF_UP);
+        return pricePerBaht.divide(settingsService.gramsPerBaht(), 8, RoundingMode.HALF_UP);
     }
 
     private BigDecimal capDiscount(BigDecimal requestedDiscount) {
         BigDecimal allowed = switch (currentRole()) {
-            case OWNER -> properties.getBusiness().getOwnerMaxMakingFeeDiscount();
-            case MANAGER -> properties.getBusiness().getManagerMaxMakingFeeDiscount();
-            case CASHIER -> properties.getBusiness().getCashierMaxMakingFeeDiscount();
+            case OWNER -> settingsService.ownerMaxMakingFeeDiscount();
+            case MANAGER -> settingsService.managerMaxMakingFeeDiscount();
+            case STAFF, CASHIER -> settingsService.cashierMaxMakingFeeDiscount();
+            case ACCOUNT -> BigDecimal.ZERO;
         };
         return requestedDiscount.min(allowed);
     }
@@ -123,7 +126,7 @@ public class GoldCalculationService {
         if (authentication != null && authentication.getPrincipal() instanceof User user) {
             return user.getRole();
         }
-        return Role.CASHIER;
+        return Role.STAFF;
     }
 
     private BigDecimal valueOf(Double value) {

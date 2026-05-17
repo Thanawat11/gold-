@@ -14,11 +14,12 @@ public class CheckoutRequest {
     @Valid
     @NotEmpty
     private List<CheckoutItemRequest> items;
+    @Valid
+    private List<CheckoutPaymentRequest> payments;
     @NotNull
     private TransactionType transactionType;
     private Double totalAmount;
     private Double discount;
     private Double netAmount;
-    @NotNull
     private PaymentMethod paymentMethod;
 }

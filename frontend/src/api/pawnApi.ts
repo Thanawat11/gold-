@@ -1,6 +1,8 @@
 import { request } from './client';
 import type {
   PawnActionRequest,
+  PawnEstimateRequest,
+  PawnEstimateResponse,
   PawnHistory,
   PawnInterestSuggestion,
   PawnTicket,
@@ -14,6 +16,10 @@ export interface PawnableItem {
 }
 
 export const pawnApi = {
+  estimate: (data: PawnEstimateRequest) => request<PawnEstimateResponse>('/api/v1/pawn/estimate', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  }),
   createTicket: (data: PawnTicketRequest) => request<PawnTicket>('/api/v1/pawn/create', {
     method: 'POST',
     body: JSON.stringify(data),

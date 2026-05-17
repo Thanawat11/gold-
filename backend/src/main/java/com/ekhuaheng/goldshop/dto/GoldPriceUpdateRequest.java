@@ -9,4 +9,6 @@ public class GoldPriceUpdateRequest {
     private Double barBuyPrice;
     @NotNull
     private Double barSellPrice;
+    private Double ornamentBuyPrice;
+    private Double ornamentSellPrice;
 }

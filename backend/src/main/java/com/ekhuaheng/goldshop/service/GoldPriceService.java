@@ -50,6 +50,8 @@ public class GoldPriceService {
             GoldPrice entity = GoldPrice.builder()
                     .buyPrice(parsePrice(response.getBar().getBuy()))
                     .sellPrice(parsePrice(response.getBar().getSell()))
+                    .ornamentBuyPrice(parseOptionalPrice(response.getOrnament(), true))
+                    .ornamentSellPrice(parseOptionalPrice(response.getOrnament(), false))
                     .build();
             goldPriceRepository.save(entity);
             log.info("Saved current gold price to history: {}", response.getBar().getSell());
@@ -60,6 +62,8 @@ public class GoldPriceService {
         GoldPrice price = GoldPrice.builder()
                 .buyPrice(request.getBarBuyPrice())
                 .sellPrice(request.getBarSellPrice())
+                .ornamentBuyPrice(request.getOrnamentBuyPrice())
+                .ornamentSellPrice(request.getOrnamentSellPrice())
                 .updatedBy(currentUser().orElse(null))
                 .build();
         GoldPrice saved = goldPriceRepository.save(price);
@@ -69,6 +73,24 @@ public class GoldPriceService {
 
     public java.util.List<GoldPrice> getPriceHistory() {
         return goldPriceRepository.findTop20ByOrderByEffectiveDateDesc();
+    }
+
+    public double getCurrentBarBuyPrice() {
+        GoldPriceResponse response = getGoldPrice();
+        if (response.getBar() == null || response.getBar().getBuy() == null) {
+            return 0.0;
+        }
+        Double barBuyPrice = parsePrice(response.getBar().getBuy());
+        return barBuyPrice == null ? 0.0 : barBuyPrice;
+    }
+
+    public double getCurrentBarSellPrice() {
+        GoldPriceResponse response = getGoldPrice();
+        if (response.getBar() == null || response.getBar().getSell() == null) {
+            return 0.0;
+        }
+        Double barSellPrice = parsePrice(response.getBar().getSell());
+        return barSellPrice == null ? 0.0 : barSellPrice;
     }
 
     private GoldPriceResponse scrapePrice() {
@@ -111,31 +133,45 @@ public class GoldPriceService {
     }
 
     private Double parsePrice(String price) {
+        if (price == null || price.isBlank()) {
+            return null;
+        }
         try {
             return Double.parseDouble(price.replace(",", ""));
         } catch (Exception e) {
-            return 0.0;
+            return null;
         }
     }
 
     private boolean hasPrice(GoldPriceResponse response) {
         return response.getBar() != null
-                && response.getBar().getBuy() != null
-                && response.getBar().getSell() != null;
+                && parsePrice(response.getBar().getBuy()) != null
+                && parsePrice(response.getBar().getSell()) != null;
+    }
+
+    private Double parseOptionalPrice(GoldPriceResponse.PriceDetail detail, boolean buy) {
+        if (detail == null) {
+            return null;
+        }
+        return parsePrice(buy ? detail.getBuy() : detail.getSell());
     }
 
     private GoldPriceResponse fromEntity(GoldPrice price) {
         return GoldPriceResponse.builder()
                 .bar(GoldPriceResponse.PriceDetail.builder()
-                        .buy(PRICE_FORMAT.format(price.getBuyPrice()))
-                        .sell(PRICE_FORMAT.format(price.getSellPrice()))
+                        .buy(formatPrice(price.getBuyPrice()))
+                        .sell(formatPrice(price.getSellPrice()))
                         .build())
                 .ornament(GoldPriceResponse.PriceDetail.builder()
-                        .buy(PRICE_FORMAT.format(price.getBuyPrice()))
-                        .sell(PRICE_FORMAT.format(price.getSellPrice()))
+                        .buy(formatPrice(price.getOrnamentBuyPrice()))
+                        .sell(formatPrice(price.getOrnamentSellPrice()))
                         .build())
                 .updateTime(price.getEffectiveDate().toString())
                 .build();
+    }
+
+    private String formatPrice(Double price) {
+        return price == null ? null : PRICE_FORMAT.format(price);
     }
 
     private Optional<User> currentUser() {

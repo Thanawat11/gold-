@@ -12,6 +12,7 @@ import { Inventory } from './pages/Inventory';
 import { Customers } from './pages/Customers';
 import { Reports } from './pages/Reports';
 import { Settings } from './pages/Settings';
+import { Users } from './pages/Users';
 
 import { Navigate } from 'react-router-dom';
 import { useAuthStore } from './store/useAuthStore';
@@ -46,6 +47,7 @@ function App() {
             <Route path="inventory" element={<Inventory />} />
             <Route path="customers" element={<Customers />} />
             <Route path="reports" element={<Reports />} />
+            <Route path="users" element={<Users />} />
             <Route path="settings" element={<Settings />} />
           </Route>
         </Routes>

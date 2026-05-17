@@ -20,19 +20,19 @@ public class GoldPriceController {
     private final GoldPriceService goldPriceService;
 
     @GetMapping
-    @PreAuthorize("hasAnyRole('OWNER','MANAGER','CASHIER')")
+    @PreAuthorize("hasAnyRole('OWNER','MANAGER','STAFF','ACCOUNT','CASHIER')")
     public ResponseEntity<?> getGoldPrice() {
         return ResponseEntity.ok(goldPriceService.getGoldPrice());
     }
 
     @PutMapping
-    @PreAuthorize("hasAnyRole('OWNER','MANAGER')")
+    @PreAuthorize("hasRole('OWNER')")
     public ResponseEntity<?> updateGoldPrice(@Valid @RequestBody GoldPriceUpdateRequest request) {
         return ResponseEntity.ok(goldPriceService.updateManualPrice(request));
     }
 
     @GetMapping("/history")
-    @PreAuthorize("hasAnyRole('OWNER','MANAGER','CASHIER')")
+    @PreAuthorize("hasAnyRole('OWNER','MANAGER','STAFF','ACCOUNT','CASHIER')")
     public ResponseEntity<?> getGoldPriceHistory() {
         return ResponseEntity.ok(goldPriceService.getPriceHistory());
     }

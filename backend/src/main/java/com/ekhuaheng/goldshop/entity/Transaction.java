@@ -1,5 +1,6 @@
 package com.ekhuaheng.goldshop.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -27,6 +28,7 @@ public class Transaction {
 
     @ManyToOne
     @JoinColumn(name = "user_id", nullable = false)
+    @JsonIgnore
     private User createdBy; // พนักงานที่ทำรายการ
 
     @Enumerated(EnumType.STRING)
@@ -41,8 +43,24 @@ public class Transaction {
     @Column(nullable = false)
     private PaymentMethod paymentMethod;
 
+    @Enumerated(EnumType.STRING)
+    private TransactionStatus status;
+
+    @ManyToOne
+    @JoinColumn(name = "canceled_by")
+    @JsonIgnore
+    private User canceledBy;
+
+    private LocalDateTime canceledAt;
+
+    @Column(length = 500)
+    private String cancelReason;
+
     @OneToMany(mappedBy = "transaction", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private List<TransactionItem> items;
+
+    @OneToMany(mappedBy = "transaction", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    private List<TransactionPayment> payments;
 
     @Column(updatable = false)
     private LocalDateTime transactionDate;
@@ -50,5 +68,8 @@ public class Transaction {
     @PrePersist
     protected void onCreate() {
         transactionDate = LocalDateTime.now();
+        if (status == null) {
+            status = TransactionStatus.ACTIVE;
+        }
     }
 }

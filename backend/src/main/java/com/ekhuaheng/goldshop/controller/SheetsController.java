@@ -20,7 +20,7 @@ public class SheetsController {
     private final GoogleSheetsService sheetsService;
 
     @GetMapping("/pawnable-items")
-    @PreAuthorize("hasAnyRole('OWNER','MANAGER','CASHIER')")
+    @PreAuthorize("hasAnyRole('OWNER','MANAGER','STAFF','CASHIER')")
     public ResponseEntity<List<Map<String, Object>>> getPawnableItems() {
         List<Map<String, Object>> items = sheetsService.getData(SheetNames.PAWNABLE_ITEMS);
         return ResponseEntity.ok(items);
@@ -31,8 +31,8 @@ public class SheetsController {
     public ResponseEntity<?> template() {
         return ResponseEntity.ok(Map.of(
                 SheetNames.USERS, List.of("username", "password", "fullName", "role"),
-                SheetNames.PRODUCTS, List.of("id", "barcode", "name", "category", "weightGram", "weightText", "status"),
-                SheetNames.CUSTOMERS, List.of("id", "fullName", "phone", "idCard"),
+                SheetNames.PRODUCTS, List.of("id", "barcode", "qrCode", "name", "category", "design", "goldPercent", "weightGram", "weightText", "makingFee", "costFee", "costAmount", "imageUrl", "status"),
+                SheetNames.CUSTOMERS, List.of("id", "fullName", "phone", "identityType", "idCard", "address", "trustLevel", "idCardImageUrl", "customerImageUrl", "documentUrl", "notes"),
                 SheetNames.PAWN_TICKETS, List.of("id", "customer", "product", "principal", "interestRate", "pawnDate", "dueDate", "status"),
                 SheetNames.PAWN_HISTORY, List.of("id", "ticketId", "actionType", "amountPaid", "interestPaid", "createdAt"),
                 SheetNames.TRANSACTIONS, List.of("id", "receiptNumber", "transactionType", "netAmount", "paymentMethod"),

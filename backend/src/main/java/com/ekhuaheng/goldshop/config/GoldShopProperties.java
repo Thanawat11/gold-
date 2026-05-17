@@ -57,6 +57,7 @@ public class GoldShopProperties {
     public static class Business {
         private BigDecimal gramsPerBaht = new BigDecimal("15.16");
         private BigDecimal ornamentWearDeductionPercent = new BigDecimal("5.00");
+        private BigDecimal buyFixedDeductionAmount = new BigDecimal("200.00");
         private BigDecimal ownerMaxMakingFeeDiscount = new BigDecimal("999999");
         private BigDecimal managerMaxMakingFeeDiscount = new BigDecimal("1000");
         private BigDecimal cashierMaxMakingFeeDiscount = new BigDecimal("300");
@@ -64,7 +65,8 @@ public class GoldShopProperties {
 
         @Data
         public static class Pawn {
-            private int defaultTermMonths = 4;
+            private int defaultTermMonths = 5;
+            private BigDecimal loanToValuePercent = new BigDecimal("85.00");
             private BigDecimal smallTicketInterestRate = new BigDecimal("2.00");
             private BigDecimal standardTicketInterestRate = new BigDecimal("1.25");
             private BigDecimal smallTicketLimit = new BigDecimal("9999");

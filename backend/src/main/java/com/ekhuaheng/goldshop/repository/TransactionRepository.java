@@ -12,4 +12,5 @@ import java.util.Optional;
 public interface TransactionRepository extends JpaRepository<Transaction, Long> {
     Optional<Transaction> findByReceiptNumber(String receiptNumber);
     List<Transaction> findByTransactionDateBetween(LocalDateTime start, LocalDateTime end);
+    List<Transaction> findByCustomerIdOrderByTransactionDateDesc(Long customerId);
 }

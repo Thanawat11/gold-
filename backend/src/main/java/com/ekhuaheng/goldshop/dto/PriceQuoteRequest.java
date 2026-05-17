@@ -11,6 +11,7 @@ public class PriceQuoteRequest {
     private Double makingFee;
     private Double makingFeeDiscount;
     private Double wearDeductionPercent;
+    private Double fixedDeductionAmount;
     private Double overrideAmount;
     private String tradeInPolicy;
     private Double newItemTotal;

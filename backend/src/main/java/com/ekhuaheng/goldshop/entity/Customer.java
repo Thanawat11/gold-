@@ -22,16 +22,49 @@ public class Customer {
 
     private String phoneNumber;
 
+    @Enumerated(EnumType.STRING)
+    private IdentityType identityType;
+
     @Column(unique = true)
-    private String idCardNumber; // เลขบัตรประชาชน
+    private String idCardNumber; // เลขบัตรประชาชนหรือ Passport
 
     private String address;
+
+    @Enumerated(EnumType.STRING)
+    private CustomerTrustLevel trustLevel;
+
+    @Column(columnDefinition = "TEXT")
+    private String idCardImageUrl;
+
+    @Column(columnDefinition = "TEXT")
+    private String customerImageUrl;
+
+    @Column(columnDefinition = "TEXT")
+    private String documentUrl;
+
+    @Column(columnDefinition = "TEXT")
+    private String notes;
 
     @Column(updatable = false)
     private LocalDateTime createdAt;
 
     @PrePersist
     protected void onCreate() {
+        normalizeIdentityType();
         createdAt = LocalDateTime.now();
+    }
+
+    @PreUpdate
+    protected void onUpdate() {
+        normalizeIdentityType();
+    }
+
+    private void normalizeIdentityType() {
+        if (identityType == null) {
+            identityType = IdentityType.THAI_ID;
+        }
+        if (trustLevel == null) {
+            trustLevel = CustomerTrustLevel.NORMAL;
+        }
     }
 }

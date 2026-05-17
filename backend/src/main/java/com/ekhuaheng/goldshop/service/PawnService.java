@@ -1,8 +1,9 @@
 package com.ekhuaheng.goldshop.service;
 
 import com.ekhuaheng.goldshop.dto.PawnTicketRequest;
+import com.ekhuaheng.goldshop.dto.PawnEstimateRequest;
+import com.ekhuaheng.goldshop.dto.PawnEstimateResponse;
 import com.ekhuaheng.goldshop.dto.ProductRequest;
-import com.ekhuaheng.goldshop.config.GoldShopProperties;
 import com.ekhuaheng.goldshop.config.SheetNames;
 import com.ekhuaheng.goldshop.entity.*;
 import com.ekhuaheng.goldshop.repository.*;
@@ -12,6 +13,8 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.LocalDate;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
@@ -32,15 +35,66 @@ public class PawnService {
     private final GoogleSheetsService sheetsService;
     private final DocumentNumberService documentNumberService;
     private final GoldCalculationService goldCalculationService;
+    private final GoldPriceService goldPriceService;
     private final ProductService productService;
-    private final GoldShopProperties properties;
+    private final BusinessSettingsService settingsService;
     private final AuditLogService auditLogService;
+
+    public PawnEstimateResponse estimate(PawnEstimateRequest request) {
+        int defaultTermMonths = settingsService.pawnDefaultTermMonths();
+        BigDecimal weightGram = moneyValue(request.getWeightGram());
+        BigDecimal goldPricePerBaht = request.getGoldPricePerBaht() == null
+                ? moneyValue(goldPriceService.getCurrentBarBuyPrice())
+                : moneyValue(request.getGoldPricePerBaht());
+        BigDecimal wearDeductionPercent = request.getWearDeductionPercent() == null
+                ? settingsService.wearDeductionPercent()
+                : moneyValue(request.getWearDeductionPercent());
+        BigDecimal loanToValuePercent = request.getLoanToValuePercent() == null
+                ? settingsService.pawnLoanToValuePercent()
+                : moneyValue(request.getLoanToValuePercent());
+
+        BigDecimal rawGoldValue = weightGram.multiply(goldCalculationService.pricePerGram(goldPricePerBaht));
+        BigDecimal wearDeduction = rawGoldValue.multiply(wearDeductionPercent)
+                .divide(BigDecimal.valueOf(100), 2, RoundingMode.HALF_UP);
+        BigDecimal appraisedValue = rawGoldValue.subtract(wearDeduction).max(BigDecimal.ZERO);
+        BigDecimal recommendedPrincipal = appraisedValue.multiply(loanToValuePercent)
+                .divide(BigDecimal.valueOf(100), 2, RoundingMode.HALF_UP);
+        BigDecimal selectedPrincipal = request.getPrincipalAmount() == null
+                ? recommendedPrincipal
+                : moneyValue(request.getPrincipalAmount());
+        BigDecimal interestRate = goldCalculationService.pawnInterestRate(selectedPrincipal);
+        BigDecimal monthlyInterest = selectedPrincipal.multiply(interestRate)
+                .divide(BigDecimal.valueOf(100), 2, RoundingMode.HALF_UP);
+
+        return PawnEstimateResponse.builder()
+                .goldPricePerBaht(money(goldPricePerBaht))
+                .rawGoldValue(money(rawGoldValue))
+                .wearDeductionAmount(money(wearDeduction))
+                .appraisedValue(money(appraisedValue))
+                .loanToValuePercent(money(loanToValuePercent))
+                .recommendedPrincipal(money(recommendedPrincipal))
+                .selectedPrincipal(money(selectedPrincipal))
+                .monthlyInterestRate(money(interestRate))
+                .monthlyInterestAmount(money(monthlyInterest))
+                .defaultTermMonths(defaultTermMonths)
+                .defaultDueDate(LocalDate.now().plusMonths(defaultTermMonths))
+                .formula("PAWN_ESTIMATE")
+                .build();
+    }
 
     @Transactional
     public PawnTicket createTicket(PawnTicketRequest request) {
         String username = SecurityContextHolder.getContext().getAuthentication().getName();
         User user = userRepository.findByUsername(username)
                 .orElseThrow(() -> new RuntimeException("ไม่พบผู้ใช้งานในระบบ"));
+        String normalizedPhone = normalizePhone(request.getCustomerPhone());
+        IdentityType identityType = request.getIdentityType() == null ? IdentityType.THAI_ID : request.getIdentityType();
+        String identityNumber = normalizeIdentityNumber(identityType,
+                request.getIdentityNumber() == null ? request.getIdCard() : request.getIdentityNumber());
+        boolean creatingNewCustomer = request.getCustomerId() == null || request.getCustomerId() <= 0;
+        if (creatingNewCustomer) {
+            validatePawnCustomer(request.getCustomerName(), normalizedPhone, identityType, identityNumber);
+        }
 
         // 1. ค้นหาหรือสร้างข้อมูลลูกค้า
         Customer customer;
@@ -50,8 +104,8 @@ public class PawnService {
         } else {
             // ค้นหาจากเลขบัตร หรือ ชื่อ
             Optional<Customer> existing = Optional.empty();
-            if (request.getIdCard() != null && !request.getIdCard().isEmpty()) {
-                existing = customerRepository.findByIdCardNumber(request.getIdCard());
+            if (!identityNumber.isEmpty()) {
+                existing = customerRepository.findByIdCardNumber(identityNumber);
             }
             if (existing.isEmpty() && request.getCustomerName() != null) {
                 existing = customerRepository.findByFullName(request.getCustomerName());
@@ -59,12 +113,29 @@ public class PawnService {
 
             if (existing.isPresent()) {
                 customer = existing.get();
+                boolean updated = false;
+                if ((customer.getPhoneNumber() == null || customer.getPhoneNumber().isBlank()) && !normalizedPhone.isEmpty()) {
+                    customer.setPhoneNumber(normalizedPhone);
+                    updated = true;
+                }
+                if (customer.getIdentityType() == null) {
+                    customer.setIdentityType(identityType);
+                    updated = true;
+                }
+                if ((customer.getIdCardNumber() == null || customer.getIdCardNumber().isBlank()) && !identityNumber.isEmpty()) {
+                    customer.setIdCardNumber(identityNumber);
+                    updated = true;
+                }
+                if (updated) {
+                    customer = customerRepository.save(customer);
+                }
             } else {
                 // สร้างลูกค้าใหม่
                 customer = Customer.builder()
                         .fullName(request.getCustomerName())
-                        .phoneNumber(request.getCustomerPhone())
-                        .idCardNumber(request.getIdCard())
+                        .phoneNumber(normalizedPhone)
+                        .identityType(identityType)
+                        .idCardNumber(identityNumber)
                         .address("-")
                         .build();
                 customer = customerRepository.save(customer);
@@ -75,6 +146,7 @@ public class PawnService {
                         "id", customer.getId(),
                         "fullName", customer.getFullName(),
                         "phone", customer.getPhoneNumber() != null ? customer.getPhoneNumber() : "-",
+                        "identityType", customer.getIdentityType() != null ? customer.getIdentityType().name() : IdentityType.THAI_ID.name(),
                         "idCard", customer.getIdCardNumber() != null ? customer.getIdCardNumber() : "-"
                     ));
                 } catch (Exception e) {
@@ -108,7 +180,7 @@ public class PawnService {
                 .principalAmount(request.getPrincipalAmount())
                 .interestRate(request.getInterestRate() == null ? calculateInterestRate(request.getPrincipalAmount()) : request.getInterestRate())
                 .pawnDate(request.getPawnDate() != null ? request.getPawnDate() : LocalDate.now())
-                .dueDate(request.getDueDate() != null ? request.getDueDate() : LocalDate.now().plusMonths(properties.getBusiness().getPawn().getDefaultTermMonths()))
+                .dueDate(request.getDueDate() != null ? request.getDueDate() : LocalDate.now().plusMonths(settingsService.pawnDefaultTermMonths()))
                 .status(PawnStatus.ACTIVE)
                 .createdBy(user)
                 .build();
@@ -229,6 +301,15 @@ public class PawnService {
             product.setStatus(ProductStatus.AVAILABLE);
             productRepository.save(product);
             historyBuilder.principalAdjusted(-ticket.getPrincipalAmount());
+        } else if (request.getActionType() == PawnActionType.EXPIRE) {
+            ticket.setStatus(PawnStatus.EXPIRED);
+            Product product = ticket.getProduct();
+            product.setStatus(ProductStatus.EXPIRED_PAWN);
+            if (product.getCategory() == null || !product.getCategory().contains("หลุดจำนำ")) {
+                product.setCategory("ทองหลุดจำนำ");
+            }
+            productRepository.save(product);
+            historyBuilder.principalAdjusted(-ticket.getPrincipalAmount());
         } else {
             throw new RuntimeException("ประเภทการทำรายการไม่ถูกต้อง");
         }
@@ -257,6 +338,56 @@ public class PawnService {
 
     public double calculateInterestRate(double principal) {
         return goldCalculationService.pawnInterestRate(java.math.BigDecimal.valueOf(principal)).doubleValue();
+    }
+
+    private void validatePawnCustomer(String customerName, String phoneNumber, IdentityType identityType, String identityNumber) {
+        if (customerName == null || customerName.isBlank()) {
+            throw new RuntimeException("กรุณาระบุชื่อลูกค้า");
+        }
+        if (phoneNumber.isEmpty()) {
+            throw new RuntimeException("กรุณาระบุเบอร์โทรลูกค้า");
+        }
+        if (!phoneNumber.matches("0\\d{8,9}|\\+66\\d{8,9}")) {
+            throw new RuntimeException("รูปแบบเบอร์โทรไม่ถูกต้อง");
+        }
+        if (identityNumber.isEmpty()) {
+            throw new RuntimeException(identityType == IdentityType.PASSPORT ? "กรุณาระบุเลข Passport" : "กรุณาระบุเลขบัตรประชาชน");
+        }
+        if (identityType == IdentityType.PASSPORT && !identityNumber.matches("[A-Z0-9]{6,20}")) {
+            throw new RuntimeException("เลข Passport ต้องเป็นตัวอักษรหรือตัวเลข 6-20 ตัว");
+        }
+        if (identityType == IdentityType.THAI_ID && !isValidThaiId(identityNumber)) {
+            throw new RuntimeException("เลขบัตรประชาชนไม่ถูกต้อง");
+        }
+    }
+
+    private String normalizePhone(String phoneNumber) {
+        if (phoneNumber == null) {
+            return "";
+        }
+        return phoneNumber.trim().replaceAll("[\\s-]", "");
+    }
+
+    private String normalizeIdentityNumber(IdentityType identityType, String identityNumber) {
+        if (identityNumber == null) {
+            return "";
+        }
+        if (identityType == IdentityType.PASSPORT) {
+            return identityNumber.trim().replaceAll("[\\s-]", "").toUpperCase();
+        }
+        return identityNumber.replaceAll("\\D", "");
+    }
+
+    private boolean isValidThaiId(String idCardNumber) {
+        if (idCardNumber == null || !idCardNumber.matches("\\d{13}") || idCardNumber.matches("(\\d)\\1{12}")) {
+            return false;
+        }
+        int sum = 0;
+        for (int index = 0; index < 12; index++) {
+            sum += Character.getNumericValue(idCardNumber.charAt(index)) * (13 - index);
+        }
+        int checkDigit = (11 - (sum % 11)) % 10;
+        return checkDigit == Character.getNumericValue(idCardNumber.charAt(12));
     }
 
     public Map<String, Object> getSuggestedInterest(Long ticketId) {
@@ -292,10 +423,9 @@ public class PawnService {
 
         double principal = ticket.getPrincipalAmount();
         double ratePercent = calculateInterestRate(principal) / 100.0;
-        GoldShopProperties.Business.Pawn pawnRules = properties.getBusiness().getPawn();
-        double reduction = (java.math.BigDecimal.valueOf(principal).compareTo(pawnRules.getMiddleTicketMin()) >= 0
-                && java.math.BigDecimal.valueOf(principal).compareTo(pawnRules.getSmallTicketLimit()) <= 0)
-                ? pawnRules.getMonthlyReductionForMiddleTickets().doubleValue()
+        double reduction = (java.math.BigDecimal.valueOf(principal).compareTo(settingsService.pawnMiddleTicketMin()) >= 0
+                && java.math.BigDecimal.valueOf(principal).compareTo(settingsService.pawnSmallTicketLimit()) <= 0)
+                ? settingsService.pawnMonthlyReductionForMiddleTickets().doubleValue()
                 : 0.0;
         
         // We will return both, frontend will pick based on active tab
@@ -339,5 +469,13 @@ public class PawnService {
             "nearDueCount", nearDueCount,
             "totalPrincipal", totalPrincipal
         );
+    }
+
+    private BigDecimal moneyValue(Double value) {
+        return value == null ? BigDecimal.ZERO : BigDecimal.valueOf(value);
+    }
+
+    private double money(BigDecimal value) {
+        return value.setScale(2, RoundingMode.HALF_UP).doubleValue();
     }
 }

@@ -10,8 +10,8 @@ const SHEET_NAMES = [
 
 const HEADERS = {
   Users: ['username', 'password', 'fullName', 'role'],
-  Products: ['id', 'barcode', 'name', 'category', 'weightGram', 'weightText', 'status'],
-  Customers: ['id', 'fullName', 'phone', 'idCard'],
+  Products: ['id', 'barcode', 'qrCode', 'name', 'category', 'design', 'goldPercent', 'weightGram', 'weightText', 'makingFee', 'costFee', 'costAmount', 'imageUrl', 'status'],
+  Customers: ['id', 'fullName', 'phone', 'identityType', 'idCard', 'address', 'trustLevel', 'idCardImageUrl', 'customerImageUrl', 'documentUrl', 'notes'],
   PawnTickets: ['id', 'customer', 'product', 'principal', 'interestRate', 'pawnDate', 'dueDate', 'status'],
   PawnHistory: ['id', 'ticketId', 'actionType', 'amountPaid', 'interestPaid', 'createdAt'],
   Transactions: ['id', 'receiptNumber', 'transactionType', 'netAmount', 'paymentMethod'],

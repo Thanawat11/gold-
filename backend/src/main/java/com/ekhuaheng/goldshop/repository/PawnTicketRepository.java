@@ -14,4 +14,5 @@ public interface PawnTicketRepository extends JpaRepository<PawnTicket, Long> {
     Optional<PawnTicket> findByTicketNumber(String ticketNumber);
     List<PawnTicket> findByStatus(PawnStatus status);
     List<PawnTicket> findByStatusAndDueDateLessThanEqual(PawnStatus status, LocalDate dueDate);
+    List<PawnTicket> findByCustomerIdOrderByCreatedAtDesc(Long customerId);
 }

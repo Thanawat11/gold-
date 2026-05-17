@@ -19,19 +19,19 @@ public class ProductController {
     private final ProductService productService;
 
     @GetMapping
-    @PreAuthorize("hasAnyRole('OWNER','MANAGER','CASHIER')")
+    @PreAuthorize("hasAnyRole('OWNER','MANAGER','STAFF','CASHIER')")
     public ResponseEntity<List<Product>> getAllProducts() {
         return ResponseEntity.ok(productService.getAllProducts());
     }
 
     @GetMapping("/available")
-    @PreAuthorize("hasAnyRole('OWNER','MANAGER','CASHIER')")
+    @PreAuthorize("hasAnyRole('OWNER','MANAGER','STAFF','CASHIER')")
     public ResponseEntity<List<Product>> getAvailableProducts() {
         return ResponseEntity.ok(productService.getAvailableProducts());
     }
 
     @GetMapping("/barcode/{code}")
-    @PreAuthorize("hasAnyRole('OWNER','MANAGER','CASHIER')")
+    @PreAuthorize("hasAnyRole('OWNER','MANAGER','STAFF','CASHIER')")
     public ResponseEntity<Product> getProductByBarcode(@PathVariable String code) {
         return ResponseEntity.ok(productService.getByBarcode(code));
     }
@@ -40,5 +40,11 @@ public class ProductController {
     @PreAuthorize("hasAnyRole('OWNER','MANAGER')")
     public ResponseEntity<Product> createProduct(@Valid @RequestBody ProductRequest product) {
         return ResponseEntity.ok(productService.createProduct(product));
+    }
+
+    @PutMapping("/{id}")
+    @PreAuthorize("hasAnyRole('OWNER','MANAGER')")
+    public ResponseEntity<Product> updateProduct(@PathVariable Long id, @Valid @RequestBody ProductRequest product) {
+        return ResponseEntity.ok(productService.updateProduct(id, product));
     }
 }

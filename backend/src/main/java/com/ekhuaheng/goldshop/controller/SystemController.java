@@ -1,15 +1,19 @@
 package com.ekhuaheng.goldshop.controller;
 
-import com.ekhuaheng.goldshop.config.GoldShopProperties;
+import com.ekhuaheng.goldshop.dto.BusinessSettingsRequest;
 import com.ekhuaheng.goldshop.service.AuditLogService;
+import com.ekhuaheng.goldshop.service.BusinessSettingsService;
 import com.ekhuaheng.goldshop.service.GoogleSheetsService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.util.LinkedHashMap;
 import java.util.Map;
 
 @RestController
@@ -17,21 +21,25 @@ import java.util.Map;
 @RequiredArgsConstructor
 public class SystemController {
 
-    private final GoldShopProperties properties;
+    private final BusinessSettingsService businessSettingsService;
     private final GoogleSheetsService sheetsService;
     private final AuditLogService auditLogService;
 
     @GetMapping("/settings")
-    @PreAuthorize("hasAnyRole('OWNER','MANAGER','CASHIER')")
+    @PreAuthorize("hasAnyRole('OWNER','MANAGER','STAFF','ACCOUNT','CASHIER')")
     public ResponseEntity<?> settings() {
-        return ResponseEntity.ok(Map.of(
-                "gramsPerBaht", properties.getBusiness().getGramsPerBaht(),
-                "wearDeductionPercent", properties.getBusiness().getOrnamentWearDeductionPercent(),
-                "pawnDefaultTermMonths", properties.getBusiness().getPawn().getDefaultTermMonths(),
-                "cashierMaxMakingFeeDiscount", properties.getBusiness().getCashierMaxMakingFeeDiscount(),
-                "managerMaxMakingFeeDiscount", properties.getBusiness().getManagerMaxMakingFeeDiscount(),
-                "googleSheetsEnabled", sheetsService.isEnabled()
-        ));
+        Map<String, Object> settings = new LinkedHashMap<>(businessSettingsService.currentSettings());
+        settings.put("googleSheetsEnabled", sheetsService.isEnabled());
+        return ResponseEntity.ok(settings);
+    }
+
+    @PutMapping("/settings")
+    @PreAuthorize("hasRole('OWNER')")
+    public ResponseEntity<?> updateSettings(@RequestBody BusinessSettingsRequest request) {
+        Map<String, Object> settings = new LinkedHashMap<>(businessSettingsService.update(request));
+        settings.put("googleSheetsEnabled", sheetsService.isEnabled());
+        auditLogService.record("UPDATE_SYSTEM_SETTINGS", "SystemSettings", "business", "Updated business calculation settings");
+        return ResponseEntity.ok(settings);
     }
 
     @GetMapping("/audit-logs")

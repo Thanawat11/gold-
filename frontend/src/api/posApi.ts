@@ -14,10 +14,18 @@ export const posApi = {
     method: 'POST',
     body: JSON.stringify(data),
   }),
+  cancelTransaction: (id: number, reason: string) => request<Transaction>(`/api/v1/pos/transactions/${id}/void`, {
+    method: 'POST',
+    body: JSON.stringify({ reason }),
+  }),
   getProducts: () => request<Product[]>('/api/v1/products'),
   getAvailableProducts: () => request<Product[]>('/api/v1/products/available'),
   createProduct: (data: ProductRequest) => request<Product>('/api/v1/products', {
     method: 'POST',
+    body: JSON.stringify(data),
+  }),
+  updateProduct: (id: number, data: ProductRequest) => request<Product>(`/api/v1/products/${id}`, {
+    method: 'PUT',
     body: JSON.stringify(data),
   }),
   quoteSell: (data: PriceQuoteRequest) => request<PriceQuoteResponse>('/api/v1/pricing/sell', {

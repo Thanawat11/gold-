@@ -23,6 +23,10 @@ public class GoldPrice {
     @Column(nullable = false)
     private Double sellPrice; // ราคาขายออก (ต่อ 1 บาททองคำ)
 
+    private Double ornamentBuyPrice; // ราคารับซื้อทองรูปพรรณ
+
+    private Double ornamentSellPrice; // ราคาขายออกทองรูปพรรณ
+
     @Column(nullable = false, updatable = false)
     private LocalDateTime effectiveDate;
 

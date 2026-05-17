@@ -42,8 +42,12 @@ public class CustomUserDetailsService implements UserDetailsService {
                         user.setFullName(String.valueOf(sheetUser.get("fullName")));
                         
                         Object roleValue = sheetUser.get("role");
-                        String roleStr = roleValue == null ? Role.CASHIER.name() : String.valueOf(roleValue);
-                        user.setRole(Role.valueOf(roleStr));
+                        String roleStr = roleValue == null ? Role.STAFF.name() : String.valueOf(roleValue);
+                        try {
+                            user.setRole(Role.valueOf(roleStr));
+                        } catch (IllegalArgumentException ignored) {
+                            user.setRole(Role.STAFF);
+                        }
                     }
                 }
             } catch (Exception e) {

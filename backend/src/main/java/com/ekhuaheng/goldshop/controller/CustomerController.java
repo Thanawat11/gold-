@@ -1,8 +1,9 @@
 package com.ekhuaheng.goldshop.controller;
 
+import com.ekhuaheng.goldshop.dto.CustomerRequest;
 import com.ekhuaheng.goldshop.entity.Customer;
-import com.ekhuaheng.goldshop.repository.CustomerRepository;
-import com.ekhuaheng.goldshop.service.AuditLogService;
+import com.ekhuaheng.goldshop.service.CustomerService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -15,20 +16,29 @@ import java.util.List;
 @RequiredArgsConstructor
 public class CustomerController {
 
-    private final CustomerRepository customerRepository;
-    private final AuditLogService auditLogService;
+    private final CustomerService customerService;
 
     @GetMapping
-    @PreAuthorize("hasAnyRole('OWNER','MANAGER','CASHIER')")
+    @PreAuthorize("hasAnyRole('OWNER','MANAGER','STAFF','CASHIER')")
     public ResponseEntity<List<Customer>> list() {
-        return ResponseEntity.ok(customerRepository.findAll());
+        return ResponseEntity.ok(customerService.getCustomers());
+    }
+
+    @GetMapping("/{id}/profile")
+    @PreAuthorize("hasAnyRole('OWNER','MANAGER','STAFF','CASHIER')")
+    public ResponseEntity<?> profile(@PathVariable Long id) {
+        return ResponseEntity.ok(customerService.getCustomerProfile(id));
     }
 
     @PostMapping
-    @PreAuthorize("hasAnyRole('OWNER','MANAGER','CASHIER')")
-    public ResponseEntity<Customer> create(@RequestBody Customer customer) {
-        Customer saved = customerRepository.save(customer);
-        auditLogService.record("CREATE_CUSTOMER", "Customer", saved.getId(), saved.getFullName());
-        return ResponseEntity.ok(saved);
+    @PreAuthorize("hasAnyRole('OWNER','MANAGER','STAFF','CASHIER')")
+    public ResponseEntity<Customer> create(@Valid @RequestBody CustomerRequest customer) {
+        return ResponseEntity.ok(customerService.createCustomer(customer));
+    }
+
+    @PutMapping("/{id}")
+    @PreAuthorize("hasAnyRole('OWNER','MANAGER','STAFF','CASHIER')")
+    public ResponseEntity<Customer> update(@PathVariable Long id, @Valid @RequestBody CustomerRequest customer) {
+        return ResponseEntity.ok(customerService.updateCustomer(id, customer));
     }
 }

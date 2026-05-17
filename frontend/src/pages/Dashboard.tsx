@@ -21,28 +21,42 @@ import {
   PointOfSale,
   Save,
 } from '@mui/icons-material';
-import { Area, AreaChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
+import { Area, AreaChart, Legend, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import { motion } from 'framer-motion';
 import { systemApi } from '../api/systemApi';
 import { getErrorMessage } from '../api/client';
 import { useStore } from '../store/useStore';
-import type { DashboardSummary } from '../types';
+import { useAuthStore } from '../store/useAuthStore';
+import { GoldPriceTicker } from '../components/GoldPriceTicker';
+import type { DashboardSummary, GoldPriceHistoryItem } from '../types';
 
 const currency = new Intl.NumberFormat('th-TH', { style: 'currency', currency: 'THB' });
 const number = new Intl.NumberFormat('th-TH', { maximumFractionDigits: 2 });
 
 interface ChartPoint {
   name: string;
-  price: number;
+  barSell: number;
+  ornamentSell?: number;
 }
+
+const parsePriceInput = (value: string) => Number(value.replace(/,/g, ''));
+const parseOptionalPriceInput = (value: string) => {
+  const normalized = value.trim();
+  return normalized ? parsePriceInput(normalized) : null;
+};
 
 export const Dashboard = () => {
   const theme = useTheme();
   const { goldPrice, setGoldPriceFromApi } = useStore();
+  const user = useAuthStore((state) => state.user);
+  const canUpdatePrice = user?.role === 'OWNER';
   const [summary, setSummary] = useState<DashboardSummary | null>(null);
   const [history, setHistory] = useState<ChartPoint[]>([]);
+  const [goldHistory, setGoldHistory] = useState<GoldPriceHistoryItem[]>([]);
   const [manualBuy, setManualBuy] = useState('');
   const [manualSell, setManualSell] = useState('');
+  const [manualOrnamentBuy, setManualOrnamentBuy] = useState('');
+  const [manualOrnamentSell, setManualOrnamentSell] = useState('');
   const [error, setError] = useState('');
   const [updatingPrice, setUpdatingPrice] = useState(false);
 
@@ -57,10 +71,14 @@ export const Dashboard = () => {
       setGoldPriceFromApi(price);
       setManualBuy(price.bar.buy ?? '');
       setManualSell(price.bar.sell ?? '');
+      setManualOrnamentBuy(price.ornament.buy ?? '');
+      setManualOrnamentSell(price.ornament.sell ?? '');
       setSummary(dashboard);
+      setGoldHistory(historyRows);
       setHistory(historyRows.slice().reverse().map((item) => ({
         name: new Date(item.effectiveDate).toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' }),
-        price: item.sellPrice,
+        barSell: item.sellPrice,
+        ornamentSell: item.ornamentSellPrice ?? undefined,
       })));
     } catch (err) {
       setError(getErrorMessage(err, 'ไม่สามารถโหลดข้อมูลหน้าหลักได้'));
@@ -91,7 +109,12 @@ export const Dashboard = () => {
     setError('');
     setUpdatingPrice(true);
     try {
-      await systemApi.updateGoldPrice(Number(manualBuy.replace(/,/g, '')), Number(manualSell.replace(/,/g, '')));
+      await systemApi.updateGoldPrice({
+        barBuyPrice: parsePriceInput(manualBuy),
+        barSellPrice: parsePriceInput(manualSell),
+        ornamentBuyPrice: parseOptionalPriceInput(manualOrnamentBuy),
+        ornamentSellPrice: parseOptionalPriceInput(manualOrnamentSell),
+      });
       await load();
     } catch (err) {
       setError(getErrorMessage(err, 'ไม่สามารถอัปเดตราคาทองได้'));
@@ -107,21 +130,31 @@ export const Dashboard = () => {
           <Typography variant="h4" sx={{ fontWeight: 700 }}>หน้าหลัก</Typography>
           <Typography variant="body2" color="text.secondary">อัปเดตราคา: {goldPrice.updateTime || '-'}</Typography>
         </Box>
-        <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1}>
-          <TextField size="small" label="รับซื้อทองคำแท่ง" value={manualBuy} onChange={(event) => setManualBuy(event.target.value)} />
-          <TextField size="small" label="ขายออกทองคำแท่ง" value={manualSell} onChange={(event) => setManualSell(event.target.value)} />
+        <Stack direction={{ xs: 'column', md: 'row' }} spacing={1} sx={{ flexWrap: 'wrap', justifyContent: 'flex-end' }}>
+          <TextField size="small" label="แท่งรับซื้อ" value={manualBuy} onChange={(event) => setManualBuy(event.target.value)} disabled={!canUpdatePrice} sx={{ minWidth: 150 }} />
+          <TextField size="small" label="แท่งขายออก" value={manualSell} onChange={(event) => setManualSell(event.target.value)} disabled={!canUpdatePrice} sx={{ minWidth: 150 }} />
+          <TextField size="small" label="รูปพรรณรับซื้อ" value={manualOrnamentBuy} onChange={(event) => setManualOrnamentBuy(event.target.value)} disabled={!canUpdatePrice} sx={{ minWidth: 160 }} />
+          <TextField size="small" label="รูปพรรณขายออก" value={manualOrnamentSell} onChange={(event) => setManualOrnamentSell(event.target.value)} disabled={!canUpdatePrice} sx={{ minWidth: 160 }} />
           <Button
             variant="contained"
             startIcon={updatingPrice ? <CircularProgress size={18} color="inherit" /> : <Save />}
             onClick={updatePrice}
-            disabled={updatingPrice}
+            disabled={updatingPrice || !canUpdatePrice}
           >
             {updatingPrice ? 'กำลังอัปเดต...' : 'อัปเดต'}
           </Button>
         </Stack>
       </Box>
 
+      {!canUpdatePrice && <Alert severity="info">การแก้ราคาทองทำได้เฉพาะ Owner เพื่อป้องกันการแก้ราคาเองของพนักงาน</Alert>}
+
       {error && <Alert severity="error">{error}</Alert>}
+
+      <GoldPriceTicker
+        goldPrice={goldPrice}
+        history={goldHistory}
+        subtitle="ดูทิศทางราคาล่าสุดพร้อมสัญลักษณ์ขึ้น/ลงหลังอัปเดต"
+      />
 
       <Grid container spacing={2}>
         {[
@@ -152,20 +185,41 @@ export const Dashboard = () => {
         <Grid size={{ xs: 12, lg: 8 }}>
           <Card>
             <CardContent>
-              <Typography variant="h6" sx={{ fontWeight: 700, mb: 2 }}>แนวโน้มราคาทองคำแท่ง</Typography>
+              <Typography variant="h6" sx={{ fontWeight: 700, mb: 2 }}>แนวโน้มราคาทอง</Typography>
               <Box sx={{ height: 320 }}>
                 <ResponsiveContainer width="100%" height="100%">
                   <AreaChart data={history}>
                     <defs>
-                      <linearGradient id="priceGradient" x1="0" y1="0" x2="0" y2="1">
+                      <linearGradient id="barPriceGradient" x1="0" y1="0" x2="0" y2="1">
                         <stop offset="5%" stopColor={theme.palette.secondary.main} stopOpacity={0.7} />
                         <stop offset="95%" stopColor={theme.palette.secondary.main} stopOpacity={0} />
+                      </linearGradient>
+                      <linearGradient id="ornamentPriceGradient" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor={theme.palette.primary.main} stopOpacity={0.35} />
+                        <stop offset="95%" stopColor={theme.palette.primary.main} stopOpacity={0} />
                       </linearGradient>
                     </defs>
                     <XAxis dataKey="name" axisLine={false} tickLine={false} />
                     <YAxis domain={['dataMin - 100', 'dataMax + 100']} axisLine={false} tickLine={false} />
-                    <Tooltip formatter={(value) => [currency.format(Number(value)), 'ขายออก']} />
-                    <Area dataKey="price" type="monotone" stroke={theme.palette.secondary.main} fill="url(#priceGradient)" strokeWidth={3} />
+                    <Tooltip formatter={(value, name) => [currency.format(Number(value)), String(name)]} />
+                    <Legend />
+                    <Area
+                      dataKey="barSell"
+                      name="ทองคำแท่งขายออก"
+                      type="monotone"
+                      stroke={theme.palette.secondary.main}
+                      fill="url(#barPriceGradient)"
+                      strokeWidth={3}
+                    />
+                    <Area
+                      dataKey="ornamentSell"
+                      name="ทองรูปพรรณขายออก"
+                      type="monotone"
+                      stroke={theme.palette.primary.main}
+                      fill="url(#ornamentPriceGradient)"
+                      strokeWidth={3}
+                      connectNulls
+                    />
                   </AreaChart>
                 </ResponsiveContainer>
               </Box>

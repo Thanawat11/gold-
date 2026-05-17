@@ -9,6 +9,7 @@ import { authApi } from '../api/authApi';
 import { useAuthStore } from '../store/useAuthStore';
 import { motion } from 'framer-motion';
 import { getErrorMessage } from '../api/client';
+import shopLogo from '../assets/ek-hua-heng-logo.png';
 
 export default function Login() {
   const [username, setUsername] = useState('');
@@ -58,7 +59,7 @@ export default function Login() {
         transition={{ duration: 0.5 }}
       >
         <Card sx={{ 
-          maxWidth: 400, 
+          maxWidth: 420,
           width: '100%', 
           borderRadius: 1,
           boxShadow: '0 8px 32px rgba(0,0,0,0.3)',
@@ -67,22 +68,18 @@ export default function Login() {
         }}>
           <CardContent sx={{ p: 4 }}>
             <Box sx={{ textAlign: 'center', mb: 4 }}>
-              <Box 
-                sx={{ 
-                  width: 60, 
-                  height: 60, 
-                  bgcolor: 'primary.main', 
-                  borderRadius: 1,
-                  display: 'flex', 
-                  alignItems: 'center', 
-                  justifyContent: 'center',
-                  margin: '0 auto',
+              <Box
+                component="img"
+                src={shopLogo}
+                alt="ห้างทองเอกฮั่วเฮง"
+                sx={{
+                  width: 132,
+                  height: 132,
+                  objectFit: 'contain',
                   mb: 2,
-                  boxShadow: '0 4px 12px rgba(183, 28, 28, 0.4)'
+                  filter: 'drop-shadow(0 10px 22px rgba(183, 28, 28, 0.2))',
                 }}
-              >
-                <LockOutlined sx={{ color: 'white', fontSize: 30 }} />
-              </Box>
+              />
               <Typography variant="h5" sx={{ fontWeight: 'bold' }} color="primary.main">
                 ห้างทองเอกฮั่วเฮง
               </Typography>

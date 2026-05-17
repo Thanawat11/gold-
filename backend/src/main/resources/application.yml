@@ -47,11 +47,13 @@ goldshop:
   business:
     grams-per-baht: ${GOLD_GRAMS_PER_BAHT:15.16}
     ornament-wear-deduction-percent: ${ORNAMENT_WEAR_DEDUCTION_PERCENT:5.00}
+    buy-fixed-deduction-amount: ${BUY_FIXED_DEDUCTION_AMOUNT:200.00}
     owner-max-making-fee-discount: ${OWNER_MAX_MAKING_FEE_DISCOUNT:999999}
     manager-max-making-fee-discount: ${MANAGER_MAX_MAKING_FEE_DISCOUNT:1000}
     cashier-max-making-fee-discount: ${CASHIER_MAX_MAKING_FEE_DISCOUNT:300}
     pawn:
       default-term-months: ${PAWN_DEFAULT_TERM_MONTHS:4}
+      loan-to-value-percent: ${PAWN_LOAN_TO_VALUE_PERCENT:85.00}
       small-ticket-interest-rate: ${PAWN_SMALL_TICKET_INTEREST_RATE:2.00}
       standard-ticket-interest-rate: ${PAWN_STANDARD_TICKET_INTEREST_RATE:1.25}
       small-ticket-limit: ${PAWN_SMALL_TICKET_LIMIT:9999}

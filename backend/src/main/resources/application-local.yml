@@ -2,6 +2,17 @@ spring:
   config:
     activate:
       on-profile: local
+  datasource:
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/goldshop}
+    driver-class-name: ${SPRING_DATASOURCE_DRIVER:org.postgresql.Driver}
+    username: ${SPRING_DATASOURCE_USERNAME:goldshop}
+    password: ${SPRING_DATASOURCE_PASSWORD:goldshop_dev_password}
+  h2:
+    console:
+      enabled: ${H2_CONSOLE_ENABLED:false}
+  jpa:
+    hibernate:
+      ddl-auto: ${SPRING_JPA_DDL_AUTO:update}
 
 server:
   port: ${SERVER_PORT:18080}
@@ -19,5 +30,5 @@ goldshop:
     admin:
       password: ${GOLDSHOP_ADMIN_PASSWORD:Admin@12345}
   google-sheets:
-    enabled: true
-    web-app-url: https://script.google.com/macros/s/AKfycbzwH7PgRS96xFHVmmgZl5oeXY-GhLaxxYD7bONTu0dui1YFoFLR4juHTndUdWjfxAH0/exec
+    enabled: ${GOOGLE_SHEETS_ENABLED:false}
+    web-app-url: ${GOOGLE_SHEETS_WEB_APP_URL:https://script.google.com/macros/s/AKfycbzwH7PgRS96xFHVmmgZl5oeXY-GhLaxxYD7bONTu0dui1YFoFLR4juHTndUdWjfxAH0/exec}

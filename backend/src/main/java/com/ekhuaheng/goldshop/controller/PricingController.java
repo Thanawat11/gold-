@@ -20,25 +20,25 @@ public class PricingController {
     private final GoldCalculationService calculationService;
 
     @PostMapping("/sell")
-    @PreAuthorize("hasAnyRole('OWNER','MANAGER','CASHIER')")
+    @PreAuthorize("hasAnyRole('OWNER','MANAGER','STAFF','CASHIER')")
     public ResponseEntity<PriceQuoteResponse> sell(@Valid @RequestBody PriceQuoteRequest request) {
         return ResponseEntity.ok(calculationService.sell(request));
     }
 
     @PostMapping("/buy")
-    @PreAuthorize("hasAnyRole('OWNER','MANAGER','CASHIER')")
+    @PreAuthorize("hasAnyRole('OWNER','MANAGER','STAFF','CASHIER')")
     public ResponseEntity<PriceQuoteResponse> buy(@Valid @RequestBody PriceQuoteRequest request) {
         return ResponseEntity.ok(calculationService.buy(request));
     }
 
     @PostMapping("/trade-in")
-    @PreAuthorize("hasAnyRole('OWNER','MANAGER','CASHIER')")
+    @PreAuthorize("hasAnyRole('OWNER','MANAGER','STAFF','CASHIER')")
     public ResponseEntity<PriceQuoteResponse> tradeIn(@Valid @RequestBody PriceQuoteRequest request) {
         return ResponseEntity.ok(calculationService.tradeIn(request));
     }
 
     @PostMapping("/pawn-interest")
-    @PreAuthorize("hasAnyRole('OWNER','MANAGER','CASHIER')")
+    @PreAuthorize("hasAnyRole('OWNER','MANAGER','STAFF','CASHIER')")
     public ResponseEntity<PriceQuoteResponse> pawnInterest(@Valid @RequestBody PriceQuoteRequest request) {
         return ResponseEntity.ok(calculationService.pawnInterest(request));
     }

@@ -16,7 +16,7 @@ public class DashboardController {
     private final DashboardService dashboardService;
 
     @GetMapping
-    @PreAuthorize("hasAnyRole('OWNER','MANAGER','CASHIER')")
+    @PreAuthorize("hasAnyRole('OWNER','MANAGER','STAFF','ACCOUNT','CASHIER')")
     public ResponseEntity<?> summary() {
         return ResponseEntity.ok(dashboardService.summary());
     }
